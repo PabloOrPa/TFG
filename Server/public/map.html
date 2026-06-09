@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BlueWave Rentals | Alquiler Náutico</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<link rel="stylesheet" href="./styles/map.css">
+
+</head>
+
+<!-- MODAL -->
+<div id="rental-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="modal-title">Nuevo alquiler</h2>
+        <input
+            type="text"
+            id="client-name"
+            placeholder="Nombre del cliente"
+        >
+        <input
+            type="number"
+            id="rental-time"
+            placeholder="Tiempo (minutos)"
+        >
+        <select id="rental-option">
+            <option value="">Selecciona opción</option>
+            <option value="individual">
+                Individual
+            </option>
+            <option value="doble">
+                Doble
+            </option>
+            <option value="premium">
+                Premium
+            </option>
+        </select>
+        <div class="modal-buttons">
+            <button onclick="confirmRental()">
+                Confirmar
+            </button>
+            <button onclick="closeModal()" class="cancel">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>
+
+<body>
+
+<!-- NAVBAR -->
+<nav>
+<h1>🌊 BlueWave Rentals</h1>
+<div>
+<a href="#">Inicio</a>
+<a href="#">Flota</a>
+<a href="#">Reservas</a>
+<a href="#">Contacto</a>
+</div>
+</nav>
+
+<div class="main-layout">
+<!-- SERVICIOS -->
+<section class="services">
+<!-- SERVICIOS -->
+<section class="services">
+
+<button class="service-btn" onclick="selectService('paddle')">
+    <span class="icon">🏄</span>
+    <span>Paddle Surf</span>
+</button>
+
+<button class="service-btn" onclick="selectService('catamaran')">
+    <span class="icon">⛵</span>
+    <span>Catamarán</span>
+</button>
+
+<button class="service-btn" onclick="selectService('windsurf')">
+    <span class="icon">🌬</span>
+    <span>Windsurf</span>
+</button>
+
+<button class="service-btn" onclick="selectService('kayak')">
+    <span class="icon">🚣</span>
+    <span>Kayak</span>
+</button>
+
+<button class="service-btn" onclick="selectService('hidropedal')">
+    <span class="icon">🚤</span>
+    <span>Hidropedales</span>
+</button>
+
+</section>
+</section>
+
+<!-- MAPA -->
+<section class="map-section">
+
+<h2 style="text-align:center;">📍 Ubicación y flota en tiempo real</h2>
+
+<div id="map"></div>
+
+<p class="status" id="status">
+Conectando con la base náutica...
+</p>
+
+</section>
+</div>
+<footer>
+© 2026 BlueWave Rentals — Todos los derechos reservados
+</footer>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+/* ================= MAPA ================= */
+
+const map = L.map('map').setView([36.7213,-4.4214],13); // ejemplo Málaga
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{ attribution:'© OpenStreetMap'}
+).addTo(map);
+
+/* ================= MARKERS ================= */
+
+const markers = {};
+
+/* ================= WEBSOCKET ================= */
+
+const status = document.getElementById("status");
+
+const socket = new WebSocket("ws://" + location.host);
+
+socket.onopen = ()=>{
+    status.innerText="🟢 Flota conectada en tiempo real";
+};
+
+socket.onclose = ()=>{
+    status.innerText="🔴 Conexión perdida";
+};
+
+socket.onerror = ()=>{
+    status.innerText="⚠️ Error de conexión";
+};
+
+/* ================= DATOS REALTIME ================= */
+
+socket.onmessage = (event)=>{
+
+    const data = JSON.parse(event.data);
+
+    if(data.type !== "location") return;
+
+    const {device,lat,lng}=data;
+
+    updateDevice(device,lat,lng);
+};
+
+/* ================= UPDATE DEVICE ================= */
+
+function updateDevice(device,lat,lng){
+
+    if(!markers[device]){
+
+        markers[device]=L.marker([lat,lng])
+            .addTo(map)
+            .bindPopup("⛵ "+device);
+
+    }else{
+        markers[device].setLatLng([lat,lng]);
+    }
+
+    if(!window.firstLocationReceived){
+        map.setView([lat,lng],15);
+        window.firstLocationReceived=true;
+    }
+}
+// Encargada de comenzar un alquiler
+let selectedService = null;
+
+function selectService(service){
+
+    selectedService = service;
+
+    document.getElementById("modal-title").innerText =
+        "Nuevo alquiler: " + service;
+
+    document
+        .getElementById("rental-modal")
+        .classList.remove("hidden");
+}
+
+function closeModal(){
+
+    document
+        .getElementById("rental-modal")
+        .classList.add("hidden");
+}
+
+async function confirmRental(){
+
+    const nombre =
+        document.getElementById("client-name").value;
+
+    const tiempo =
+        document.getElementById("rental-time").value;
+
+    const opcion =
+        document.getElementById("rental-option").value;
+
+    console.log({
+        servicio:selectedService,
+        nombre,
+        tiempo,
+        opcion
+    });
+
+    // Aquí fetch al backend
+
+    closeModal();
+}
+
+</script>
+
+</body>
+</html>

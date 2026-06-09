@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GPS Dashboard</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+        background: #0f172a;
+        color: #e2e8f0;
+    }
+
+    .container {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        background: #020617;
+        padding: 20px;
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sidebar h2 {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #38bdf8;
+    }
+
+    /* Main */
+    .main {
+        padding: 20px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 20px;
+    }
+
+    .header {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+        height: 100%;
+    }
+
+    /* Cards */
+    .card {
+        background: rgba(15, 23, 42, 0.8);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        backdrop-filter: blur(8px);
+    }
+
+    /* Map card */
+    #map {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+    }
+
+    /* Inputs */
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        border: none;
+        background: #020617;
+        color: white;
+    }
+
+    button {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        background: #3b82f6;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #2563eb;
+    }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="sidebar">
+        <h2>GPS Server</h2>
+        <p style="opacity:0.6;">Demo dashboard</p>
+    </div>
+
+    <div class="main">
+
+        <div class="header">📍 Tracking en tiempo real</div>
+
+        <div class="grid">
+
+            <!-- Control panel -->
+            <div class="card">
+                <h3>Actualizar posición</h3>
+                <input id="lat" placeholder="Latitud">
+                <input id="lng" placeholder="Longitud">
+                <button onclick="updatePosition()">Enviar</button>
+            </div>
+
+            <!-- Map panel -->
+            <div class="card">
+                <div id="map"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    const map = L.map('map').setView([40.4168, -3.7038], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let marker = L.marker([40.4168, -3.7038]).addTo(map);
+
+    async function fetchPosition() {
+        const res = await fetch('/position');
+        const data = await res.json();
+
+        marker.setLatLng([data.lat, data.lng]);
+    }
+
+    async function updatePosition() {
+        const lat = parseFloat(document.getElementById("lat").value);
+        const lng = parseFloat(document.getElementById("lng").value);
+
+        await fetch('/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng })
+        });
+
+        fetchPosition();
+    }
+
+    setInterval(fetchPosition, 2000);
+</script>
+
+</body>
+</html>
